@@ -179,7 +179,7 @@ jobs:
           echo "GOOS=$GOOS" >> $GITHUB_ENV
           echo "GOARCH=$GOARCH" >> $GITHUB_ENV
       - name: Build
-        working-directory: ${{ matrix.component }}
+        working-directory: podtato-services-sets/${{ matrix.component }}
         run: |
           go build -o "$BINARY_NAME" -v
       - uses: actions/upload-artifact@v2
