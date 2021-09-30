@@ -12,13 +12,6 @@ on:
       - 'master'
       - 'release-*'
 
-
-env:
-  CONTAINER_REGISTRY: ghcr.io
-  TRIVY_IGNORE_UNFIXED: true
-  TRIVY_VULN_TYPE: 'os,library'
-  TRIVY_SEVERITY: 'CRITICAL,HIGH'
-
 defaults:
   run:
     shell: bash
@@ -93,6 +86,44 @@ jobs:
           echo "::set-output name=DATE::$(date +'%Y%m%d')"
           echo "::set-output name=TIME::$(date +'%H%M')"
           echo "::set-output name=DATETIME::$(date +'%Y%m%d')$(date +'%H%M')"
+
+  ############################################################################
+  # Build Checks                                                             #
+  ############################################################################
+  build_checks:
+    needs: [prepare_ci_run]
+    strategy:
+      matrix:
+        component: [ "arms","legs","hats","main" ]
+
+    runs-on: ubuntu-20.04
+    env:
+      BRANCH: ${{ needs.prepare_ci_run.outputs.BRANCH }}
+      VERSION: ${{ needs.prepare_ci_run.outputs.VERSION }}
+      DATETIME: ${{ needs.prepare_ci_run.outputs.DATE }}${{ needs.prepare_ci_run.outputs.TIME }}
+      GIT_SHA: ${{ needs.prepare_ci_run.outputs.GIT_SHA }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.29
+          working-directory: ${{ matrix.component }}
+          args: --timeout 120s
+
+      - name: Test
+        working-directory: ${{ matrix.component }}
+        run: go test ./...
 
   artefact_build:
     needs: [prepare_ci_run, build_checks]
