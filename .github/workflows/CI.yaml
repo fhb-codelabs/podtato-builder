@@ -103,8 +103,12 @@ jobs:
       DATETIME: ${{ needs.prepare_ci_run.outputs.DATE }}${{ needs.prepare_ci_run.outputs.TIME }}
       GIT_SHA: ${{ needs.prepare_ci_run.outputs.GIT_SHA }}
     steps:
-      - name: Checkout Code
+      - name: Check out code
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # need to checkout "all commits" for certain features to work (e.g., get all changed files)
+          repository: podtato-head/podtato-head
+          ref: feature/make-smaller-version
 
       - uses: actions/cache@v2
         with:
@@ -118,11 +122,11 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.29
-          working-directory: ${{ matrix.component }}
+          working-directory: podtato-services-sets/${{ matrix.component }}
           args: --timeout 120s
 
       - name: Test
-        working-directory: ${{ matrix.component }}
+        working-directory: podtato-services-sets/${{ matrix.component }}
         run: go test ./...
 
   artefact_build:
@@ -181,4 +185,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ env.BINARY_NAME }}
-          path: ${{matrix.component}}/${{ env.BINARY_NAME }}
+          path: podtato-services-sets/${{matrix.component}}/${{ env.BINARY_NAME }}
